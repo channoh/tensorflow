@@ -9,8 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpng12-dev \
         libzmq3-dev \
         pkg-config \
-        python \
-        python-dev \
+        python3.5 \
+        python3.5-dev \
+        python3-pip \
+        python3-setuptools \
+        python3-tk \
         rsync \
         software-properties-common \
         unzip \
