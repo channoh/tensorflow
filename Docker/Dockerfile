@@ -33,6 +33,7 @@ RUN pip3 --no-cache-dir install \
         scipy \
         sklearn \
         wheel \
+        opencv-python \
         && \
     python3 -m ipykernel.kernelspec
 
