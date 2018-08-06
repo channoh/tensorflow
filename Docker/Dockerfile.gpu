@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         rsync \
         software-properties-common \
         unzip \
+        libsm6 \
         locales \
         && \
     apt-get clean && \
