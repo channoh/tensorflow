@@ -5,11 +5,14 @@
 #
 
 from tensorflow.examples.tutorials.mnist import input_data
+from tensorflow.python.framework import dtypes
 import util
 import tensorflow as tf
 import time
+import collections
+import numpy as np
 
-def network():
+def network(mnist):
     # mnist = input_data.read_data_sets("./data/MNIST", one_hot=True)
     
     X = tf.placeholder(tf.float32, [None, 784])         # input image == 28x28 pixels
@@ -56,9 +59,15 @@ def network():
         tf.global_variables_initializer().run()
 
         # train
+        print(mnist.train.num_examples)
+        print(mnist.validation.num_examples)
+        print(mnist.test.num_examples)
         start = time.time()
-        for i in range(20000):
-            batch_xs, batch_ys = mnist.train.next_batch(50)
+        batch_size = 50
+        max_iter = int(mnist.train.num_examples / batch_size)
+        for i in range(max_iter):
+            batch_xs = mnist.train.images[i * batch_size : (i+1) * batch_size]
+            batch_ys = mnist.train.labels[i * batch_size : (i+1) * batch_size]
             if i % 100 == 0:
                 # evaluate
                 accuracy_val = accuracy.eval(feed_dict={X: batch_xs, Y: batch_ys, keep_prob: 1.0})
@@ -66,7 +75,6 @@ def network():
                 start = time.time()
             optimizer.run(feed_dict={X: batch_xs, Y: batch_ys, keep_prob: 0.5})
 
-            # .reshape(-1, 28, 28, 1),
         accuracy_val = accuracy.eval(feed_dict={X: mnist.test.images,
                                                 Y: mnist.test.labels,
                                                 keep_prob: 1.0})
@@ -82,12 +90,47 @@ def main():
     DATA_DIR_PATH = './data/MNIST'
     VALIDATION_SIZE = 5000
 
-    util.gunzip(util.maybe_download(TRAIN_IMAGES, DATA_DIR_PATH, DEFAULT_SOURCE_URL + TRAIN_IMAGES))
-    util.gunzip(util.maybe_download(TRAIN_LABELS, DATA_DIR_PATH, DEFAULT_SOURCE_URL + TRAIN_LABELS))
-    util.gunzip(util.maybe_download(TEST_IMAGES,  DATA_DIR_PATH, DEFAULT_SOURCE_URL + TEST_IMAGES))
-    util.gunzip(util.maybe_download(TEST_LABELS,  DATA_DIR_PATH, DEFAULT_SOURCE_URL + TEST_LABELS))
+    local_file = util.maybe_download(TRAIN_IMAGES, DATA_DIR_PATH, DEFAULT_SOURCE_URL + TRAIN_IMAGES)
+    train_images = util.extract_images(local_file)
 
-    network()
+    local_file = util.maybe_download(TRAIN_LABELS, DATA_DIR_PATH, DEFAULT_SOURCE_URL + TRAIN_LABELS)
+    train_labels = util.extract_labels(local_file)
+
+    local_file = util.maybe_download(TEST_IMAGES,  DATA_DIR_PATH, DEFAULT_SOURCE_URL + TEST_IMAGES)
+    test_images = util.extract_images(local_file)
+
+    local_file = util.maybe_download(TEST_LABELS,  DATA_DIR_PATH, DEFAULT_SOURCE_URL + TEST_LABELS)
+    test_labels = util.extract_labels(local_file)
+
+    validation_images = train_images[:VALIDATION_SIZE]
+    validation_labels = train_labels[:VALIDATION_SIZE]
+    train_images = train_images[VALIDATION_SIZE:]
+    train_labels = train_labels[VALIDATION_SIZE:]
+
+    Dataset = collections.namedtuple('Dataset', ['images', 'labels', 'num_examples'])
+    Datasets = collections.namedtuple('Datasets', ['train', 'validation', 'test'])
+
+    # train images
+    num_train_images = train_images.shape[0]
+    train_images = train_images.reshape(train_images.shape[0], train_images.shape[1] * train_images.shape[2]).astype(np.float32)
+    train_images = np.multiply(train_images, 1.0 / 255.0) # Convert from [0, 255] -> [0.0, 1.0].
+    train = Dataset(train_images, train_labels, num_train_images)
+
+    # validation images
+    num_validation_images = validation_images.shape[0]
+    validation_images = validation_images.reshape(validation_images.shape[0], validation_images.shape[1] * validation_images.shape[2]).astype(np.float32)
+    validation_images = np.multiply(validation_images, 1.0 / 255.0) # Convert from [0, 255] -> [0.0, 1.0].
+    validation = Dataset(validation_images, validation_labels, num_validation_images)
+
+    # test images
+    num_test_images = test_images.shape[0]
+    test_images = test_images.reshape(test_images.shape[0], test_images.shape[1] * test_images.shape[2]).astype(np.float32)
+    test_images = np.multiply(test_images, 1.0 / 255.0) # Convert from [0, 255] -> [0.0, 1.0].
+    test = Dataset(test_images, test_labels, num_test_images)
+
+    mnist_data = Datasets(train=train, validation=validation, test=test)
+
+    network(mnist_data)
 
 if __name__ == "__main__":
     main()
