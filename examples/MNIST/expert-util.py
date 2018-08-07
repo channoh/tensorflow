@@ -65,15 +65,16 @@ def network(mnist):
         start = time.time()
         batch_size = 50
         max_iter = int(mnist.train.num_examples / batch_size)
-        for i in range(max_iter):
-            batch_xs = mnist.train.images[i * batch_size : (i+1) * batch_size]
-            batch_ys = mnist.train.labels[i * batch_size : (i+1) * batch_size]
-            if i % 100 == 0:
-                # evaluate
-                accuracy_val = accuracy.eval(feed_dict={X: batch_xs, Y: batch_ys, keep_prob: 1.0})
-                print("step %d: accuracy= %.4f, %.2fs" % (i, accuracy_val, time.time() - start))
-                start = time.time()
-            optimizer.run(feed_dict={X: batch_xs, Y: batch_ys, keep_prob: 0.5})
+        for epoch in range(200):
+            for i in range(max_iter):
+                batch_xs = mnist.train.images[i * batch_size : (i+1) * batch_size]
+                batch_ys = mnist.train.labels[i * batch_size : (i+1) * batch_size]
+                if i % 100 == 0:
+                    # evaluate
+                    accuracy_val = accuracy.eval(feed_dict={X: batch_xs, Y: batch_ys, keep_prob: 1.0})
+                    print("step %d: accuracy= %.4f, %.2fs" % (i + epoch * max_iter, accuracy_val, time.time() - start))
+                    start = time.time()
+                optimizer.run(feed_dict={X: batch_xs, Y: batch_ys, keep_prob: 0.5})
 
         accuracy_val = accuracy.eval(feed_dict={X: mnist.test.images,
                                                 Y: mnist.test.labels,
