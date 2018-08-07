@@ -8,20 +8,19 @@
 from tensorflow.examples.tutorials.mnist import input_data
 import tensorflow as tf
 import argparse
+import os
 
 class MNIST:
     sess = None
     X = None
     Y = None
     model = None
-    model_path = None
     loss = None
     train_op = None
     mnist = None
 
-    def __init__(self, model_path='./models/mnist'):
+    def __init__(self):
         self.mnist = input_data.read_data_sets("./data/MNIST", one_hot=True)
-        self.model_path = model_path
         self.X = tf.placeholder(tf.float32, [None, 784]) # input image == 28x28 pixels == 784
         self.Y = tf.placeholder(tf.float32, [None, 10])  # one hot vector of output (0~9)
 
@@ -41,16 +40,18 @@ class MNIST:
         self.loss = tf.reduce_mean(-tf.reduce_sum(self.Y * tf.log(pred_Y), reduction_indices=[1]))
         self.train_op = tf.train.GradientDescentOptimizer(0.5).minimize(self.loss)
 
-    def save_model(self):
-        if self.model_path is not None:
-            print('Saving the model...')
-            saver = tf.train.Saver(tf.global_variables())
-            saver.save(self.sess, self.model_path)
+    def save_model(self, model_path="./model/"):
+        if not os.path.exists(model_path):
+            print("create dir {}".format(model_path))
+            os.makedirs(model_path)
+        saver = tf.train.Saver(tf.global_variables())
+        saver.save(self.sess, model_path + "model.ckpt")
+        print('Saving the model to {}...'.format(model_path))
 
-    def load_model(self):
+    def load_model(self, model_path="./model/"):
         saver = tf.train.Saver()
-        saver.restore(self.sess, self.model_path)
-        print('Loading the model...')
+        saver.restore(self.sess, model_path + "model.ckpt")
+        print('Loading the model from {}...'.format(model_path))
 
     def train(self):
         for i in range(1000):
@@ -67,7 +68,7 @@ class MNIST:
         print("accuracy:", self.sess.run(accuracy, feed_dict=feed_dict))
 
     def infer(self, image):
-        feed_dict = {self.X: image}
+        feed_dict = {self.X: image.reshape(-1, 784)}
         number = self.sess.run(tf.argmax(self.model, 1), feed_dict=feed_dict)[0]
         accuracy = self.sess.run(tf.nn.softmax(self.model), feed_dict=feed_dict)[0]
         return (accuracy[number], number)
@@ -95,5 +96,5 @@ if __name__ == "__main__":
         mnist.build_model()
         mnist.init_session()
         mnist.load_model()
-        test_image = mnist.mnist.test.images[0].reshape(-1, 784)
+        test_image = mnist.mnist.test.images[0]
         print(mnist.infer(test_image))
